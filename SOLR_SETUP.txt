@@ -1,0 +1,49 @@
+To create passwords
+
+solr auth <password> admin
+solr auth <password> daas
+solr auth <password> daas_read
+
+
+java -classpath server/lib/ext/solr-auth-*.jar org.apache.solr.util.DigestTool hash "myPassword"
+
+
+settings.json file on server below
+
+{
+  "authentication":{
+    "class":"solr.BasicAuthPlugin",
+    "credentials":{
+      "admin":"gu8bp8xy6w+FEhpohBWBhOuDlZCKGMrJwTP8JRp6MAQ= elA1CwyolhY5k+BKfw/wyOPtm4F4wMKua+M4OWxr0rg=",
+      "daas":"xztgWkSMmki6gr1AcdA9nNCJJbnRbzo7SpjiEyrnIZQ= HDiCfnsrPp++rjq4DzJ78maoC+4HL6yecQGGQi+SRoc=",
+      "daas_read":"RPahQTs1XsxPAwC0Fs4NFr7YliTuWTEn09Z4CpD+aig= GHSxQfnmaQ2d8Iv41e2Hrgh0dHOYvbKgIWzg1WkL16Y="},
+    "blockUnknown":true,
+    "":{"v":0}},
+  "authorization":{
+    "class":"solr.RuleBasedAuthorizationPlugin",
+    "user-role":{
+      "admin":["admin"],
+      "daas":["read"],
+      "daas_read":["read"]},
+    "permissions":[
+      {
+        "name":"security-edit",
+        "role":"admin"},
+      {
+        "name":"config-edit",
+        "role":"admin"},
+      {
+        "name":"schema-edit",
+        "role":"admin"},
+      {
+        "name":"update",
+        "role":[
+          "admin",
+          "update"]},
+      {
+        "name":"read",
+        "role":[
+          "admin",
+          "read",
+          "update"]}],
+    "":{"v":0}}}

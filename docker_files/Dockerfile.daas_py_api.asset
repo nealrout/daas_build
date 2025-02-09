@@ -1,0 +1,49 @@
+ARG PYTHON_VERSION_SHORT=3.12
+
+FROM python:${PYTHON_VERSION_SHORT}-alpine
+# FROM python:${PYTHON_VERSION_SHORT}-slim
+# FROM python:${PYTHON_VERSION_SHORT}
+# FROM python:3.11
+
+ARG PYTHON_VERSION_SHORT=3.12
+
+# Install system dependencies (postgresql psycopg2 requires)
+RUN apk add --no-cache \
+    postgresql-dev \
+    gcc \
+    musl-dev \
+    python3-dev 
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the project files into the container
+COPY ./daas_py_common/dist /app/daas_py_common/dist
+COPY ./daas_py_config/dist /app/daas_py_config/dist
+COPY ./daas_py_api/dist /app/daas_py_api/dist
+
+RUN pip install /app/daas_py_common/dist/daas_py_common-0.1.0-py3-none-any.whl
+RUN pip install /app/daas_py_config/dist/daas_py_config-0.1.0-py3-none-any.whl
+RUN pip install /app/daas_py_api/dist/daas_py_api-0.1.0-py3-none-any.whl
+
+## Below required if using python and not python-alpine
+# RUN apt-get update && apt-get install -y \
+#     libpq-dev \
+#     && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --upgrade pip
+
+# Ensure Gunicorn is installed
+RUN pip install gunicorn  
+
+# Expose the Django port
+EXPOSE 8001
+
+WORKDIR /usr/local/lib/python${PYTHON_VERSION_SHORT}/site-packages/daas_py_api
+
+# Run extract static files and start the Django app
+CMD sh -c "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8001 api.wsgi:application"
+
+# DEBUGGING CONTAINER
+# CMD ["sleep", "infinity"]

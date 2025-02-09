@@ -1,0 +1,33 @@
+cd "D:\src\github\daas_py"
+
+# INSTALL
+python -m pip install ./daas_py_common
+python -m pip install ./daas_py_config
+python -m pip install ./daas_py_api
+
+# BUILD PYTHON
+python -m build ./daas_py_common
+python -m build ./daas_py_config
+python -m build ./daas_py_api
+
+# BUILD DOCKER
+docker build --no-cache -t daas_api_asset .
+docker build -t daas_api_asset .
+
+# RUN DOCKER
+docker run --env-file './daas_py_api/daas_py_api/.env.int' -p 8001:8001 daas_api_asset
+docker run --env-file './daas_py_api/daas_py_api/.env' -p 800:8001 daas_api_asset
+
+# To DEBUG
+docker run -it django_app
+docker ps
+docker exec -it <CONTAINER_ID> /bin/sh
+
+############################################################################
+# FULL UNINSTALL RE-INSTALL
+############################################################################
+cd "D:\src\github\daas_py"
+
+Get-Content BUILD_DEPLOY_API_ASSET | ForEach-Object { Invoke-Expression $_ }
+Get-Content BUILD_BINARY_API_ASSET | ForEach-Object { Invoke-Expression $_ }
+

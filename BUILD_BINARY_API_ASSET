@@ -14,5 +14,3 @@ python -m pip install ./daas_py_api
 python -m build ./daas_py_common
 python -m build ./daas_py_config
 python -m build ./daas_py_api
-docker build --no-cache -t daas_api_asset .
-docker run --env-file './daas_py_api/daas_py_api/.env.int' -p 8000:8000 daas_api_asset
