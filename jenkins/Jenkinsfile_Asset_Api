@@ -3,7 +3,7 @@ pipeline {
     parameters {
         choice(
             name: 'BUILD_OPTION',
-            choices: ['PythonBuild', 'PythonBuild/DockerBuild', 'DockerBuild', 'DockerRun', 'Full']
+            choices: ['PythonBuild', 'PythonBuild-DockerBuild', 'DockerBuild', 'DockerRun', 'Full']
         )
         string(
             name: 'DOCKER_IMG_PORT',
@@ -36,11 +36,12 @@ pipeline {
         DOCKER_ENV_FILE = "D:\\src\\github\\daas_build\\env\\.env.int"
         BUILD_DIR = "D:\\home\\cicd\\build"
         OUTPUT_DIR = "D:\\home\\cicd\\output"
+        UTIL_DIR = "D:\\src\\github\\daas_build\\util"
     }
     stages {
         stage('Prepare Build Directory') {
             when {
-                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
             }
             steps {
                 powershell '''
@@ -51,15 +52,15 @@ pipeline {
                     New-Item -ItemType Directory -Path "${env:BUILD_DIR}" | Out-Null
                     
                     # Copy project files
-                    Copy-Item -Recurse -Force $(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_DIR_COMMON}") "${env:BUILD_DIR}"
-                    Copy-Item -Recurse -Force $(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_DIR_CONFIG}") "${env:BUILD_DIR}"
-                    Copy-Item -Recurse -Force $(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_DIR_API}") "${env:BUILD_DIR}"
+                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_DIR_COMMON}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_DIR_COMMON})
+                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_DIR_CONFIG}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_DIR_CONFIG})
+                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_DIR_API}")" -DestDir $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_DIR_API})
                 '''
             }
         }
         stage('Setup Virtual Environment and Install') {
             when {
-                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
             }
             steps {
                 powershell '''
@@ -79,7 +80,7 @@ pipeline {
         }
         stage('Build Python Packages') {
             when {
-                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
             }
             steps {
                 powershell '''
@@ -93,12 +94,12 @@ pipeline {
         }
         stage('Build Docker Image') {
             when {
-                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
             }
             steps {
                 powershell '''
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
-            
+
                     docker build -f "${env:DOCKER_FILE}" --no-cache -t "${env:DOCKER_IMG_NAME}" "${env:BUILD_DIR}"
                 '''
             }
@@ -111,7 +112,7 @@ pipeline {
                 
                 powershell '''
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
-                    
+
                     docker run --env-file "${env:DOCKER_ENV_FILE}" -p ${env:PORT}:${env:PORT} "${env:DOCKER_IMG_NAME}"
                 '''
             }
