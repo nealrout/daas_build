@@ -19,6 +19,10 @@ pipeline {
         )
     }
     environment {
+        // We are having issues with Rancher Desktop docker-buildx.exe plugin, so we are using docker-buildx.exe instead of docker
+        DOCKER_CLI_PLUGINS = "C:\\Program Files\\Rancher Desktop\\resources\\resources\\win32\\docker-cli-plugins"
+        PATH = "${DOCKER_CLI_PLUGINS};${env.PATH}"
+
         PYTHON_BIN = "D:\\home\\Python\\Python312\\python.exe"
         VENV_DIR = "D:\\home\\cicd\\build\\.venv"
 
@@ -30,10 +34,13 @@ pipeline {
         PROJECT_DIR_COMMON = "daas_py_common"
         PROJECT_DIR_CONFIG = "daas_py_config"
         PROJECT_DIR_API = "daas_py_api"
-        DOCKER_FILE = "D:\\src\\github\\daas_build\\docker\\Dockerfile.daas_py_api.asset"
+        DOCKER_DIR = "D:\\src\\github\\daas_build\\docker"
+        DOCKER_FILE = "Dockerfile.daas_py_api.asset"
         DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
         DOCKER_IMG_PORT = "${params.DOCKER_IMG_PORT}" 
         DOCKER_ENV_FILE = "D:\\src\\github\\daas_build\\env\\.env.int"
+        SUPERVISOR_CONF = "supervisord.conf"
+        ENTRY_POINT_SCRIPT = "entrypoint.sh"
         BUILD_DIR = "D:\\home\\cicd\\build"
         OUTPUT_DIR = "D:\\home\\cicd\\output"
         UTIL_DIR = "D:\\src\\github\\daas_build\\util"
@@ -100,7 +107,10 @@ pipeline {
                 powershell '''
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
 
-                    docker build -f "${env:DOCKER_FILE}" --no-cache -t "${env:DOCKER_IMG_NAME}" "${env:BUILD_DIR}"
+                    Copy-Item -Path $(Join-Path "${env:DOCKER_DIR}" "${env:SUPERVISOR_CONF}") -Destination "${env:BUILD_DIR}"
+                    Copy-Item -Path $(Join-Path "${env:DOCKER_DIR}" "${env:ENTRY_POINT_SCRIPT}") -Destination "${env:BUILD_DIR}"
+
+                    docker-buildx.exe build -f $(Join-Path "${env:DOCKER_DIR}" "${env:DOCKER_FILE}") --no-cache -t "${env:DOCKER_IMG_NAME}" "${env:BUILD_DIR}"
                 '''
             }
         }
@@ -113,7 +123,7 @@ pipeline {
                 powershell '''
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
 
-                    docker run --env-file "${env:DOCKER_ENV_FILE}" -p ${env:PORT}:${env:PORT} "${env:DOCKER_IMG_NAME}"
+                    docker run -d --env-file "${env:DOCKER_ENV_FILE}" -p ${env:DOCKER_IMG_PORT}:${env:DOCKER_IMG_PORT} -e PORT=${env:DOCKER_IMG_PORT} "${env:DOCKER_IMG_NAME}"
                 '''
             }
         }
