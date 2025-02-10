@@ -1,9 +1,28 @@
 pipeline {
     agent any
+    parameters {
+        choice(
+            name: 'BUILD_OPTION',
+            choices: ['PythonBuild', 'PythonBuild/DockerBuild', 'DockerBuild', 'DockerRun', 'Full']
+        )
+        string(
+            name: 'DOCKER_IMG_PORT',
+            defaultValue: '8001'
+        )
+        string(
+            name: 'DOCKER_IMG_NAME',
+            defaultValue: 'daas_api_asset'
+        )
+        string(
+            name: 'DOMAIN',
+            defaultValue: 'asset'
+        )
+    }
     environment {
         PYTHON_BIN = "D:\\home\\Python\\Python312\\python.exe"
         VENV_DIR = "D:\\home\\cicd\\build\\.venv"
 
+        DOMAIN = "${params.DOMAIN}" 
         PROJECT_DIR_ROOT = "D:\\src\\github\\daas_py"
         PROJECT_COMMON = "daas_py_common"
         PROJECT_CONFIG = "daas_py_config"
@@ -12,15 +31,17 @@ pipeline {
         PROJECT_DIR_CONFIG = "daas_py_config"
         PROJECT_DIR_API = "daas_py_api"
         DOCKER_FILE = "D:\\src\\github\\daas_build\\docker\\Dockerfile.daas_py_api.asset"
-        DOCKER_IMG_NAME = "daas_api_asset"
-        DOCKER_IMG_PORT = 8001
+        DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
+        DOCKER_IMG_PORT = "${params.DOCKER_IMG_PORT}" 
         DOCKER_ENV_FILE = "D:\\src\\github\\daas_build\\env\\.env.int"
-
         BUILD_DIR = "D:\\home\\cicd\\build"
         OUTPUT_DIR = "D:\\home\\cicd\\output"
     }
     stages {
         stage('Prepare Build Directory') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+            }
             steps {
                 powershell '''
                     # Remove old build directory if it exists
@@ -37,6 +58,9 @@ pipeline {
             }
         }
         stage('Setup Virtual Environment and Install') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+            }
             steps {
                 powershell '''
                     # Remove old virtual environment if it exists
@@ -53,36 +77,45 @@ pipeline {
                 '''
             }
         }
-
         stage('Build Python Packages') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+            }
             steps {
                 powershell '''
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
-                    Set-Location "${env:BUILD_DIR}"
+                    
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_DIR_COMMON}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_DIR_CONFIG}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_DIR_API}")
                 '''
             }
         }
-
         stage('Build Docker Image') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild/DockerBuild' }
+            }
             steps {
                 powershell '''
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+            
                     docker build -f "${env:DOCKER_FILE}" --no-cache -t "${env:DOCKER_IMG_NAME}" "${env:BUILD_DIR}"
                 '''
             }
         }
-
-        // stage('Run Docker Image') {
-        //     steps {
-        //         powershell '''
-        //             docker run --env-file ${env:DOCKER_ENV_FILE} -p 8001:8001 daas_api_asset
-        //         '''
-        //     }
-        // }
-
+        stage('Run Docker Image') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerRun'}
+            }
+            steps {
+                
+                powershell '''
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+                    
+                    docker run --env-file "${env:DOCKER_ENV_FILE}" -p ${env:PORT}:${env:PORT} "${env:DOCKER_IMG_NAME}"
+                '''
+            }
+        }
         // stage('Move Built Files') {
         //     steps {
         //         powershell '''
