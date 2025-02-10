@@ -6,3 +6,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+env/.env.dev
+env/.env.int
+/env
