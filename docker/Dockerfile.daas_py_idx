@@ -1,0 +1,46 @@
+ARG PYTHON_VERSION_SHORT=3.12
+
+FROM python:${PYTHON_VERSION_SHORT}-slim
+# FROM python:${PYTHON_VERSION_SHORT}-alpine
+# FROM python:${PYTHON_VERSION_SHORT}-slim
+# FROM python:${PYTHON_VERSION_SHORT}
+# FROM python:3.11
+
+ARG PYTHON_VERSION_SHORT=3.12
+
+## Below psycopg2 and supervisord on slim
+RUN apt-get update && apt-get install -y \
+    supervisor \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY entrypoint_idx.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+# Copy Supervisor config
+COPY supervisord_idx.conf /etc/supervisord.conf
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the project files into the container
+COPY ./daas_py_common/dist /app/daas_py_common/dist
+COPY ./daas_py_config/dist /app/daas_py_config/dist
+COPY ./daas_py_idx/dist /app/daas_py_idx/dist
+
+RUN pip install /app/daas_py_common/dist/daas_py_common-0.1.0-py3-none-any.whl
+RUN pip install /app/daas_py_config/dist/daas_py_config-0.1.0-py3-none-any.whl
+RUN pip install /app/daas_py_idx/dist/daas_py_idx-0.1.0-py3-none-any.whl
+
+# Install Python dependencies
+RUN pip install --upgrade pip
+
+# Expose the Django port
+
+WORKDIR /usr/local/lib/python${PYTHON_VERSION_SHORT}/site-packages/daas_py_idx
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+# DEBUGGING CONTAINER
+# CMD ["sleep", "infinity"]

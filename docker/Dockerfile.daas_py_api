@@ -17,10 +17,10 @@ RUN apk add --no-cache \
 # supervisor to manage gunicor web app.
 RUN apk add --no-cache supervisor
 
-COPY entrypoint.sh /entrypoint.sh
+COPY entrypoint_api.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 # Copy Supervisor config
-COPY supervisord.conf /etc/supervisord.conf
+COPY supervisord_api.conf /etc/supervisord.conf
 
 # Set the working directory inside the container
 WORKDIR /app

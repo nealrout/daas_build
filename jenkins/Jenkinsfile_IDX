@@ -1,0 +1,156 @@
+pipeline {
+    agent any
+    parameters {
+        choice(
+            name: 'BUILD_OPTION',
+            choices: ['PythonBuild', 'PythonBuild-DockerBuild', 'DockerBuild', 'DockerRun', 'Full']
+        )
+        string(
+            name: 'DOCKER_IMG_NAME',
+            defaultValue: 'daas_idx_asset'
+        )
+        string(
+            name: 'DOMAIN',
+            defaultValue: 'asset'
+        )
+        string(
+            name: 'PROJECT_DIR_ROOT',
+            defaultValue: 'D:\\src\\github\\daas_py'
+        )
+        string(
+            name: 'PROJECT_BUILD_ROOT',
+            defaultValue: 'D:\\src\\github\\daas_build'
+        )
+        string(
+            name: 'BUILD_DIR',
+            defaultValue: 'D:\\home\\cicd\\idx'
+        )
+    }
+    environment {
+        // We are having issues with Rancher Desktop docker-buildx.exe plugin, so we are using docker-buildx.exe instead of docker
+        // DOCKER_CLI_PLUGINS = "C:\\Program Files\\Rancher Desktop\\resources\\resources\\win32\\docker-cli-plugins"
+        // PATH = "${DOCKER_CLI_PLUGINS};${env.PATH}"
+
+        PYTHON_BIN = "D:\\home\\Python\\Python312\\python.exe"
+        VENV_DIR = "${params.BUILD_DIR}\\build\\.venv"
+
+        DOMAIN = "${params.DOMAIN}" 
+        PROJECT_DIR_ROOT = "${params.PROJECT_DIR_ROOT}" 
+        PROJECT_COMMON = "daas_py_common"
+        PROJECT_CONFIG = "daas_py_config"
+        PROJECT_IDX = "daas_py_idx"
+        DOCKER_DIR = "${params.PROJECT_BUILD_ROOT}\\docker"
+        DOCKER_FILE = "Dockerfile.daas_py_idx"
+        DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
+        DOCKER_IMG_PORT = "${params.DOCKER_IMG_PORT}" 
+        DOCKER_ENV_FILE = "${params.PROJECT_BUILD_ROOT}\\env\\.env.int"
+        SUPERVISOR_CONF = "supervisord_idx.conf"
+        ENTRY_POINT_SCRIPT = "entrypoint_idx.sh"
+        BUILD_DIR = "${params.BUILD_DIR}\\build"
+        OUTPUT_DIR = "${params.BUILD_DIR}\\output"
+        UTIL_DIR = "${params.PROJECT_BUILD_ROOT}\\util"
+    }
+    stages {
+        stage('Prepare Build Directory') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
+            }
+            steps {
+                powershell '''
+                    # Remove old build directory if it exists
+                    if (Test-Path "${env:BUILD_DIR}") { Remove-Item -Recurse -Force "${env:BUILD_DIR}" }
+                    
+                    # Create new build directory
+                    New-Item -ItemType Directory -Path "${env:BUILD_DIR}" | Out-Null
+                    
+                    # Copy project files
+                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_COMMON}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_COMMON})
+                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_CONFIG}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_CONFIG})
+                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_IDX}")" -DestDir $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_IDX})
+                '''
+            }
+        }
+        stage('Setup Virtual Environment and Install') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
+            }
+            steps {
+                powershell '''
+                    # Remove old virtual environment if it exists
+                    if (Test-Path "${env:VENV_DIR}") { Remove-Item -Recurse -Force "${env:VENV_DIR}" }
+                    
+                    # Create a new virtual environment
+                    & "${env:PYTHON_BIN}" -m venv "${env:VENV_DIR}"
+                    
+                    # Activate virtual environment and install dependencies
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_CONFIG}")
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_IDX}")
+                '''
+            }
+        }
+        stage('Build Python Packages') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
+            }
+            steps {
+                powershell '''
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+                    
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_CONFIG}")
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_IDX}")
+                '''
+            }
+        }
+        stage('Build Docker Image') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
+            }
+            steps {
+                powershell '''
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+
+                    Copy-Item -Path $(Join-Path "${env:DOCKER_DIR}" "${env:SUPERVISOR_CONF}") -Destination "${env:BUILD_DIR}"
+                    Copy-Item -Path $(Join-Path "${env:DOCKER_DIR}" "${env:ENTRY_POINT_SCRIPT}") -Destination "${env:BUILD_DIR}"
+
+                    docker-buildx.exe build -f $(Join-Path "${env:DOCKER_DIR}" "${env:DOCKER_FILE}") --no-cache -t "${env:DOCKER_IMG_NAME}" "${env:BUILD_DIR}"
+                '''
+            }
+        }
+        stage('Run Docker Image') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerRun'}
+            }
+            steps {
+                
+                powershell '''
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+
+                    docker run -d --env-file "${env:DOCKER_ENV_FILE}"
+                '''
+            }
+        }
+        // stage('Move Built Files') {
+        //     steps {
+        //         powershell '''
+        //             # Create output directory if not exists
+        //             if (!(Test-Path "${env:OUTPUT_DIR}")) { New-Item -ItemType Directory -Path "${env:OUTPUT_DIR}" | Out-Null }
+                    
+        //             # Copy built files to output directory
+        //             Copy-Item -Recurse -Force "${env:BUILD_DIR}\\output\\*" "${env:OUTPUT_DIR}"
+        //         '''
+        //     }
+        // }
+    }
+
+    post {
+        success {
+            echo "Build completed successfully!"
+        }
+        failure {
+            echo "Build failed!"
+        }
+    }
+}
