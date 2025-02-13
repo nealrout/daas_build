@@ -11,7 +11,7 @@ pipeline {
         )
         string(
             name: 'DOCKER_IMG_NAME',
-            defaultValue: 'daas_api_auth'
+            defaultValue: 'daas_auth'
         )
         string(
             name: 'PROJECT_DIR_ROOT',
@@ -39,14 +39,13 @@ pipeline {
         PROJECT_COMMON = "daas_py_common"
         PROJECT_CONFIG = "daas_py_config"
         PROJECT_AUTH = "daas_py_auth"
-        PROJECT_API = "daas_py_api"
         DOCKER_DIR = "${params.PROJECT_BUILD_ROOT}\\docker"
-        DOCKER_FILE = "Dockerfile.daas_py_api"
+        DOCKER_FILE = "Dockerfile.daas_py_auth"
         DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
         DOCKER_IMG_PORT = "${params.DOCKER_IMG_PORT}" 
         DOCKER_ENV_FILE = "${params.PROJECT_BUILD_ROOT}\\env\\.env.int"
-        SUPERVISOR_CONF = "supervisord_api.conf"
-        ENTRY_POINT_SCRIPT = "entrypoint_api.sh"
+        SUPERVISOR_CONF = "supervisord_auth.conf"
+        ENTRY_POINT_SCRIPT = "entrypoint_auth.sh"
         BUILD_DIR = "${params.BUILD_DIR}\\build"
         OUTPUT_DIR = "${params.BUILD_DIR}\\output"
         UTIL_DIR = "${params.PROJECT_BUILD_ROOT}\\util"
@@ -68,7 +67,6 @@ pipeline {
                     & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_COMMON}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_COMMON})
                     & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_CONFIG}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_CONFIG})
                     & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_AUTH}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_AUTH})
-                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_API}")" -DestDir $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_API})
                 '''
             }
         }
@@ -89,7 +87,6 @@ pipeline {
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_CONFIG}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_AUTH}")
-                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_API}")
                 '''
             }
         }
@@ -104,7 +101,6 @@ pipeline {
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_CONFIG}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_AUTH}")
-                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_API}")
                 '''
             }
         }
