@@ -3,7 +3,7 @@ pipeline {
     parameters {
         choice(
             name: 'BUILD_OPTION',
-            choices: ['PythonBuild', 'PythonBuild-DockerBuild', 'DockerBuild', 'DockerRun', 'Full']
+            choices: ['PythonBuild', 'PythonBuild-DockerBuild', 'DockerBuild', 'DockerRun', 'DockerBuild-DockerRun', 'Full']
         )
         string(
             name: 'DOCKER_IMG_NAME',
@@ -106,7 +106,7 @@ pipeline {
         }
         stage('Build Docker Image') {
             when {
-                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' || params.BUILD_OPTION == 'DockerBuild-DockerRun'}
             }
             steps {
                 powershell '''
@@ -121,7 +121,7 @@ pipeline {
         }
         stage('Run Docker Image') {
             when {
-                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerRun'}
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerRun' || params.BUILD_OPTION == 'DockerBuild-DockerRun'}
             }
             steps {
                 
