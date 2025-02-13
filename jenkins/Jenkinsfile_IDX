@@ -62,6 +62,8 @@ pipeline {
                     
                     # Create new build directory
                     New-Item -ItemType Directory -Path "${env:BUILD_DIR}" | Out-Null
+
+                    (Get-Content "${env:DOCKER_ENV_FILE}") -replace '^DOMAIN=.*', "DOMAIN='${env:DOMAIN}'" | Set-Content "${env:DOCKER_ENV_FILE}"
                     
                     # Copy project files
                     & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_COMMON}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_COMMON})
