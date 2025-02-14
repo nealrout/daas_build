@@ -66,8 +66,8 @@ pipeline {
                     (Get-Content "${env:DOCKER_ENV_FILE}") -replace '^DOMAIN=.*', "DOMAIN='${env:DOMAIN}'" | Set-Content "${env:DOCKER_ENV_FILE}"
                     
                     # Copy project files
-                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_COMMON}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_COMMON})
                     & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_CONFIG}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_CONFIG})
+                    & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_COMMON}")" -DestDir  $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_COMMON})
                     & "${env:UTIL_DIR}\\Copy_Recursive_Filtered.ps1" -SourceDir "$(Join-Path "${env:PROJECT_DIR_ROOT}" "${env:PROJECT_IDX}")" -DestDir $(Join-Path "${env:BUILD_DIR}" ${env:PROJECT_IDX})
                 '''
             }
@@ -86,8 +86,8 @@ pipeline {
                     
                     # Activate virtual environment and install dependencies
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
-                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_CONFIG}")
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_IDX}")
                 '''
             }
@@ -100,8 +100,8 @@ pipeline {
                 powershell '''
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
                     
-                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_CONFIG}")
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_COMMON}")
                     & "${env:VENV_DIR}\\Scripts\\python.exe" -m build $(Join-Path "${env:BUILD_DIR}" "${env:PROJECT_IDX}")
                 '''
             }
