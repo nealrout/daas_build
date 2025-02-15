@@ -1,0 +1,194 @@
+pipeline {
+    agent any
+    parameters {
+        choice(
+            name: 'BUILD_OPTION',
+            choices: ['Full', 'PythonBuild', 'PythonBuild-DockerBuild', 'DockerBuild', 'DockerRun', 'DockerBuild-DockerRun', 'Git']
+        )
+        string(
+            name: 'DOCKER_IMG_PORT',
+            defaultValue: '8002'
+        )
+        string(
+            name: 'DOCKER_IMG_NAME',
+            defaultValue: 'daas_api_asset'
+        )
+        string(
+            name: 'DOMAIN',
+            defaultValue: 'asset'
+        )
+        string(
+            name: 'PROJECT_GITHUB_ROOT',
+            defaultValue: 'https://github.com/nealrout'
+        )
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'develop'
+        )
+        string(
+            name: 'BUILD_DIR',
+            defaultValue: 'D:\\home\\cicd\\api\\build'
+        )
+        string(
+            name: 'DOCKER_ENV_FILE',
+            defaultValue: 'D:\\src\\github\\daas_build\\env\\.env.int'
+        )
+        string(
+            name: 'SECRETS_FILE',
+            defaultValue: 'D:\\src\\github\\daas_py\\daas_py_config\\daas_py_config\\.secrets.toml'
+        )
+    }
+    environment {
+        // We are having issues with Rancher Desktop docker-buildx.exe plugin, so we are using docker-buildx.exe instead of docker
+        // DOCKER_CLI_PLUGINS = "C:\\Program Files\\Rancher Desktop\\resources\\resources\\win32\\docker-cli-plugins"
+        // PATH = "${DOCKER_CLI_PLUGINS};${env.PATH}"
+        
+        // !!!!!!!!!!!!!!!This local .env and .secrets.toml files are not in github for security reasons.!!!!!!!!!!!!!!!!!!!!!
+        DOCKER_ENV_FILE = "${params.DOCKER_ENV_FILE}"
+        DOCKER_ENV_FILE_COPY = "${params.BUILD_DIR}\\.env.int"
+        SECRETS_FILE = "${params.SECRETS_FILE}"
+
+        PYTHON_BIN = "D:\\home\\Python\\Python312\\python.exe"
+        VENV_DIR = "${params.BUILD_DIR}\\.venv"
+
+        DOMAIN = "${params.DOMAIN}" 
+        PROJECT_CONFIG = "daas_py_config"
+        PROJECT_COMMON = "daas_py_common"
+        PROJECT_API = "daas_py_api"
+        GIT_BRANCH = "${params.GIT_BRANCH}"
+        GIT_URL_BUILD = "${params.PROJECT_GITHUB_ROOT}/daas_build.git"
+        GIT_URL_CONFIG = "${params.PROJECT_GITHUB_ROOT}/daas_py_config.git"
+        GIT_URL_COMMON = "${params.PROJECT_GITHUB_ROOT}/daas_py_common.git"
+        GIT_URL_API = "${params.PROJECT_GITHUB_ROOT}/daas_py_api.git"
+
+        WORKSPACE_DIR_BUILD = "${params.BUILD_DIR}\\daas_build"
+        WORKSPACE_DIR_CONFIG = "${params.BUILD_DIR}\\daas_py_config"
+        WORKSPACE_DIR_COMMON = "${params.BUILD_DIR}\\daas_py_common"
+        WORKSPACE_DIR_API = "${params.BUILD_DIR}\\daas_py_api"
+        DOCKER_DIR = "${params.BUILD_DIR}\\daas_build\\docker"
+        DOCKER_FILE = "Dockerfile.daas_py_api"
+        DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
+        DOCKER_IMG_PORT = "${params.DOCKER_IMG_PORT}" 
+        
+        SECRETS_FILE_COPY = "${params.BUILD_DIR}\\daas_py_config\\daas_py_config\\.secrets.toml"
+        SUPERVISOR_CONF = "supervisord_api.conf"
+        ENTRY_POINT_SCRIPT = "entrypoint_api.sh"
+    }
+    stages {
+        stage('Prepare Build Directory') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild'|| params.BUILD_OPTION == 'Git' }
+            }
+            steps {
+                powershell '''
+                    # Remove old build directory if it exists
+                    if (Test-Path "${env:BUILD_DIR}") { Remove-Item -Recurse -Force "${env:BUILD_DIR}" }
+                    
+                    # Create new build directory
+                    New-Item -ItemType Directory -Path "${env:BUILD_DIR}" | Out-Null
+                    New-Item -ItemType Directory -Path "${env:WORKSPACE_DIR_BUILD}" | Out-Null
+                    New-Item -ItemType Directory -Path "${env:WORKSPACE_DIR_CONFIG}" | Out-Null
+                    New-Item -ItemType Directory -Path "${env:WORKSPACE_DIR_COMMON}" | Out-Null
+                    New-Item -ItemType Directory -Path "${env:WORKSPACE_DIR_API}" | Out-Null
+                    
+                '''
+            }
+        }
+        stage('Checkout Code') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' || params.BUILD_OPTION == 'Git'}
+            }
+            steps {
+                script {
+                    echo "Cloning repository..."
+
+                    powershell '''
+                        git clone -b main $env:GIT_URL_BUILD $env:WORKSPACE_DIR_BUILD
+                        git clone -b $env:GIT_BRANCH $env:GIT_URL_CONFIG $env:WORKSPACE_DIR_CONFIG
+                        git clone -b $env:GIT_BRANCH $env:GIT_URL_COMMON $env:WORKSPACE_DIR_COMMON
+                        git clone -b $env:GIT_BRANCH $env:GIT_URL_API $env:WORKSPACE_DIR_API
+
+                        Copy-Item -Path "${env:DOCKER_ENV_FILE}" -Destination "${env:DOCKER_ENV_FILE_COPY}"
+                        Copy-Item -Path "${env:SECRETS_FILE}" -Destination "${env:SECRETS_FILE_COPY}"
+
+                    '''
+                }
+            }
+        }
+        stage('Setup Virtual Environment and Install') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
+            }
+            steps {
+                powershell '''
+                    # Remove old virtual environment if it exists
+                    if (Test-Path "${env:VENV_DIR}") { Remove-Item -Recurse -Force "${env:VENV_DIR}" }
+                    
+                    # Create a new virtual environment
+                    & "${env:PYTHON_BIN}" -m venv "${env:VENV_DIR}"
+                    
+                    # Activate virtual environment and install dependencies
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install "${env:WORKSPACE_DIR_CONFIG}"
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install "${env:WORKSPACE_DIR_COMMON}"
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m pip install "${env:WORKSPACE_DIR_API}"
+                '''
+            }
+        }
+        stage('Build Python Packages') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'PythonBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' }
+            }
+            steps {
+                powershell '''
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+                    
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build "${env:WORKSPACE_DIR_CONFIG}"
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build "${env:WORKSPACE_DIR_COMMON}"
+                    & "${env:VENV_DIR}\\Scripts\\python.exe" -m build "${env:WORKSPACE_DIR_API}"
+                '''
+            }
+        }
+        stage('Build Docker Image') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' || params.BUILD_OPTION == 'DockerBuild-DockerRun'}
+            }
+            steps {
+                dir("${env:BUILD_DIR}"){
+                    powershell '''
+                        Copy-Item -Path $(Join-Path "${env:DOCKER_DIR}" "${env:SUPERVISOR_CONF}") -Destination "${env:BUILD_DIR}"
+                        Copy-Item -Path $(Join-Path "${env:DOCKER_DIR}" "${env:ENTRY_POINT_SCRIPT}") -Destination "${env:BUILD_DIR}"
+
+                        & "${env:VENV_DIR}\\Scripts\\Activate.ps1"                      
+
+                        docker-buildx.exe build -f $(Join-Path "${env:DOCKER_DIR}" "${env:DOCKER_FILE}") --no-cache -t "${env:DOCKER_IMG_NAME}" "${env:BUILD_DIR}"
+                    '''
+                }
+            }
+        }
+        stage('Run Docker Image') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerRun' || params.BUILD_OPTION == 'DockerBuild-DockerRun'}
+            }
+            steps {
+                
+                powershell '''
+                    (Get-Content "${env:DOCKER_ENV_FILE_COPY}") -replace '^DOMAIN=.*', "DOMAIN='${env:DOMAIN}'" | Set-Content "${env:DOCKER_ENV_FILE_COPY}"
+
+                    & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
+
+                    docker run -d --env-file "${env:DOCKER_ENV_FILE_COPY}" -p ${env:DOCKER_IMG_PORT}:${env:DOCKER_IMG_PORT} -e PORT=${env:DOCKER_IMG_PORT} "${env:DOCKER_IMG_NAME}"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build completed successfully!"
+        }
+        failure {
+            echo "Build failed!"
+        }
+    }
+}

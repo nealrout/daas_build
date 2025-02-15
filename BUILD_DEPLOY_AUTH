@@ -8,11 +8,11 @@ Remove-Item -Path "./daas_py_common/dist" -Recurse -Force -ErrorAction SilentlyC
 python -m pip uninstall -y daas_py_auth
 python -m pip uninstall -y daas_py_config
 python -m pip uninstall -y daas_py_common
-python -m pip install ./daas_py_common
 python -m pip install ./daas_py_config
+python -m pip install ./daas_py_common
 python -m pip install ./daas_py_auth
-python -m build ./daas_py_common
 python -m build ./daas_py_config
+python -m build ./daas_py_common
 python -m build ./daas_py_auth
 docker build -f Dockerfile.daas_py_auth --no-cache -t daas_auth .
 docker run --env-file './daas_py_api/daas_py_api/.env.int' -p 8001:8001 daas_auth
