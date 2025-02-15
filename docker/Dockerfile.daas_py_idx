@@ -9,7 +9,7 @@ FROM python:${PYTHON_VERSION_SHORT}-slim
 ARG PYTHON_VERSION_SHORT=3.12
 
 ## Below psycopg2 and supervisord on slim
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
     gcc \
     libpq-dev \
