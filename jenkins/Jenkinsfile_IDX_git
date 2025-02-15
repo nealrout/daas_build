@@ -6,6 +6,10 @@ pipeline {
             choices: ['Full', 'PythonBuild', 'PythonBuild-DockerBuild', 'DockerBuild', 'DockerRun', 'DockerBuild-DockerRun', 'Git']
         )
         string(
+            name: 'DOMAIN',
+            defaultValue: 'asset'
+        )
+        string(
             name: 'DOCKER_IMG_NAME',
             defaultValue: 'daas_idx_asset'
         )

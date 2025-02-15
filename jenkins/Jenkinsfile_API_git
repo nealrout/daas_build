@@ -10,12 +10,12 @@ pipeline {
             defaultValue: '8002'
         )
         string(
-            name: 'DOCKER_IMG_NAME',
-            defaultValue: 'daas_api_asset'
-        )
-        string(
             name: 'DOMAIN',
             defaultValue: 'asset'
+        )
+        string(
+            name: 'DOCKER_IMG_NAME',
+            defaultValue: 'daas_api_asset'
         )
         string(
             name: 'PROJECT_GITHUB_ROOT',
