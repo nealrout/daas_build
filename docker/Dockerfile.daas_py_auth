@@ -32,7 +32,7 @@ COPY ./daas_py_auth/dist /app/daas_py_auth/dist
 
 RUN pip install /app/daas_py_config/dist/daas_py_config-0.1.0-py3-none-any.whl
 RUN pip install /app/daas_py_common/dist/daas_py_common-0.1.0-py3-none-any.whl
-RUN pip install /app/daas_py_auth/dist/daas_py_api-0.1.0-py3-none-any.whl
+RUN pip install /app/daas_py_auth/dist/daas_py_auth-0.1.0-py3-none-any.whl
 
 ## Below required if using python and not python-alpine
 # RUN apt-get update && apt-get install -y \
