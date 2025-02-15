@@ -18,7 +18,7 @@ RUN apk add --no-cache \
 RUN apk add --no-cache supervisor
 
 COPY entrypoint_auth.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
 # Copy Supervisor config
 COPY supervisord_auth.conf /etc/supervisord.conf
 

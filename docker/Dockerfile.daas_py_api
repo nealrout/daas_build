@@ -18,7 +18,8 @@ RUN apk add --no-cache \
 RUN apk add --no-cache supervisor
 
 COPY entrypoint_api.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
+
 # Copy Supervisor config
 COPY supervisord_api.conf /etc/supervisord.conf
 
@@ -50,10 +51,10 @@ EXPOSE 8001
 
 WORKDIR /usr/local/lib/python${PYTHON_VERSION_SHORT}/site-packages/daas_py_api
 
-# ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 # CMD sh -c "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8001 api.wsgi:application"
 # CMD sh -c "python manage.py collectstatic --noinput && exec supervisord -c /etc/supervisord.conf"
 
 # DEBUGGING CONTAINER
-CMD ["sleep", "infinity"]
+# CMD ["sleep", "infinity"]
