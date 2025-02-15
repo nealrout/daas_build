@@ -25,12 +25,12 @@ COPY supervisord_idx.conf /etc/supervisord.conf
 WORKDIR /app
 
 # Copy the project files into the container
-COPY ./daas_py_common/dist /app/daas_py_common/dist
 COPY ./daas_py_config/dist /app/daas_py_config/dist
+COPY ./daas_py_common/dist /app/daas_py_common/dist
 COPY ./daas_py_idx/dist /app/daas_py_idx/dist
 
-RUN pip install /app/daas_py_common/dist/daas_py_common-0.1.0-py3-none-any.whl
 RUN pip install /app/daas_py_config/dist/daas_py_config-0.1.0-py3-none-any.whl
+RUN pip install /app/daas_py_common/dist/daas_py_common-0.1.0-py3-none-any.whl
 RUN pip install /app/daas_py_idx/dist/daas_py_idx-0.1.0-py3-none-any.whl
 
 # Install Python dependencies
