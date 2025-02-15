@@ -60,7 +60,6 @@ pipeline {
         DOCKER_DIR = "${params.BUILD_DIR}\\daas_build\\docker"
         DOCKER_FILE = "Dockerfile.daas_py_idx"
         DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
-        DOCKER_IMG_PORT = "${params.DOCKER_IMG_PORT}" 
         
         SECRETS_FILE_COPY = "${params.BUILD_DIR}\\daas_py_config\\daas_py_config\\.secrets.toml"
         SUPERVISOR_CONF = "supervisord_idx.conf"
@@ -169,7 +168,7 @@ pipeline {
 
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
 
-                    docker run -d --env-file "${env:DOCKER_ENV_FILE_COPY}" -p ${env:DOCKER_IMG_PORT}:${env:DOCKER_IMG_PORT} -e PORT=${env:DOCKER_IMG_PORT} "${env:DOCKER_IMG_NAME}"
+                    docker run -d --env-file "${env:DOCKER_ENV_FILE_COPY}" "${env:DOCKER_IMG_NAME}"
                 '''
             }
         }
