@@ -3,6 +3,46 @@ pipeline {
     agent any
 
     stages {
+        stage('Stop and Destroy Docker Containers') {
+            steps {
+                powershell '''
+                    $images = @(
+                        "daas_idx_account",
+                        "daas_idx_facility",
+                        "daas_idx_asset",
+                        "daas_idx_service"
+                    )
+
+                    foreach ($image in $images) {
+                        Write-Host "Stopping and removing containers for image: $image"
+
+                        # Get the list of container IDs
+                        $containers = docker ps -a --filter "ancestor=$image" --format "{{.ID}}"
+
+                        if ($containers -ne "") {
+                            $containers -split "`n" | ForEach-Object {
+                                $containerID = $_.Trim()
+
+                                if ($containerID -ne "") {
+                                    try {
+                                        Write-Host "Stopping container $containerID"
+                                        docker stop $containerID 2>$null
+
+                                        Write-Host "Removing container $containerID"
+                                        docker rm $containerID 2>$null
+                                    }
+                                    catch {
+                                        Write-Host "⚠️ Error occurred while stopping/removing container: $containerID"
+                                    }
+                                }
+                            }
+                        } else {
+                            Write-Host "No containers found for image: $image"
+                        }
+                    }
+                '''
+            }
+        }
         stage('Trigger Child Jobs') {
             steps {
                 script {

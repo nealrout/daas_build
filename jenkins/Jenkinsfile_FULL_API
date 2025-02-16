@@ -3,6 +3,47 @@ pipeline {
     agent any
 
     stages {
+        stage('Stop and Destroy Docker Containers') {
+            steps {
+                powershell '''
+                    $images = @(
+                        "daas_auth",
+                        "daas_api_account",
+                        "daas_api_facility",
+                        "daas_api_asset",
+                        "daas_api_service"
+                    )
+
+                    foreach ($image in $images) {
+                        Write-Host "Stopping and removing containers for image: $image"
+
+                        # Get the list of container IDs
+                        $containers = docker ps -a --filter "ancestor=$image" --format "{{.ID}}"
+
+                        if ($containers -ne "") {
+                            $containers -split "`n" | ForEach-Object {
+                                $containerID = $_.Trim()
+
+                                if ($containerID -ne "") {
+                                    try {
+                                        Write-Host "Stopping container $containerID"
+                                        docker stop $containerID 2>$null
+
+                                        Write-Host "Removing container $containerID"
+                                        docker rm $containerID 2>$null
+                                    }
+                                    catch {
+                                        Write-Host "⚠️ Error occurred while stopping/removing container: $containerID"
+                                    }
+                                }
+                            }
+                        } else {
+                            Write-Host "No containers found for image: $image"
+                        }
+                    }
+                '''
+            }
+        }
         stage('Trigger Child Jobs') {
             steps {
                 script {
@@ -10,7 +51,7 @@ pipeline {
                     build job: 'daas_py_auth_git', parameters: [
                         string(name: 'BUILD_OPTION', value: 'Full'),
                         string(name: 'DOCKER_IMG_PORT', value: '9000'),
-                        string(name: 'DOCKER_IMG_NAME', value: 'daas_auth_auth')
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_auth')
                     ], wait: false 
 
                     def accountJobResult = build job: 'daas_py_api_git', parameters: [

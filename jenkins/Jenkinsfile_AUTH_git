@@ -11,7 +11,7 @@ pipeline {
         )
         string(
             name: 'DOCKER_IMG_NAME',
-            defaultValue: 'daas_auth_auth'
+            defaultValue: 'daas_auth'
         )
         string(
             name: 'PROJECT_GITHUB_ROOT',
