@@ -1,0 +1,55 @@
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Trigger Child Jobs') {
+            steps {
+                script {
+
+                    build job: 'daas_py_auth_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'Full'),
+                        string(name: 'DOCKER_IMG_PORT', value: '9000'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_auth_auth')
+                    ], wait: false 
+
+                    def accountJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'Full'),
+                        string(name: 'DOCKER_IMG_PORT', value: '9001'),
+                        string(name: 'DOMAIN', value: 'account'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_api_account')
+                    ], wait: true  
+
+                    echo "account job completed with status: ${accountJobResult.result}"
+
+                    def facilitJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOCKER_IMG_PORT', value: '9002'),
+                        string(name: 'DOMAIN', value: 'facility'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_api_facility')
+                    ], wait: true 
+
+                    echo "facility job completed with status: ${facilitJobResult.result}"
+
+                    def assetJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOCKER_IMG_PORT', value: '9003'),
+                        string(name: 'DOMAIN', value: 'asset'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_api_asset')
+                    ], wait: true 
+
+                    echo "asset job completed with status: ${assetJobResult.result}"
+
+                    def serviceJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOCKER_IMG_PORT', value: '9004'),
+                        string(name: 'DOMAIN', value: 'service'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_api_service')
+                    ], wait: true 
+
+                    echo "service job completed with status: ${serviceJobResult.result}"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,45 @@
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Trigger Child Jobs') {
+            steps {
+                script {
+
+                    def accountJobResult = build job: 'daas_py_idx_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'Full'),
+                        string(name: 'DOMAIN', value: 'account'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_idx_account')
+                    ], wait: true  
+
+                    echo "account job completed with status: ${accountJobResult.result}"
+
+                    def facilitJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOMAIN', value: 'facility'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_idx_facility')
+                    ], wait: true 
+
+                    echo "facility job completed with status: ${facilitJobResult.result}"
+
+                    def assetJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOMAIN', value: 'asset'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_idx_asset')
+                    ], wait: true 
+
+                    echo "asset job completed with status: ${assetJobResult.result}"
+
+                    def serviceJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOMAIN', value: 'service'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_idx_service')
+                    ], wait: true 
+
+                    echo "service job completed with status: ${serviceJobResult.result}"
+                }
+            }
+        }
+    }
+}
