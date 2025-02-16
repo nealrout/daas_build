@@ -1,18 +1,29 @@
 cd "D:\src\github\daas_py"
+Remove-Item -Path "./daas_py_api/daas_py_api.egg-info" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "./daas_py_api/dist" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "./daas_py_idx/daas_py_idx_asse.egg-info" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "./daas_py_idx/dist" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "./daas_py_auth/daas_py_api.egg-info" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "./daas_py_auth/dist" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "./daas_py_config/daas_py_config.egg-info" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "./daas_py_config/dist" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "./daas_py_common/daas_py_common.egg-info" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "./daas_py_common/dist" -Recurse -Force -ErrorAction SilentlyContinue
+python -m pip uninstall -y daas_py_api
+python -m pip uninstall -y daas_py_idx
 python -m pip uninstall -y daas_py_auth
 python -m pip uninstall -y daas_py_config
 python -m pip uninstall -y daas_py_common
 python -m pip install ./daas_py_config
 python -m pip install ./daas_py_common
 python -m pip install ./daas_py_auth
+python -m pip install ./daas_py_idx
+python -m pip install ./daas_py_api
 python -m build ./daas_py_config
 python -m build ./daas_py_common
 python -m build ./daas_py_auth
+python -m build ./daas_py_idx
+python -m build ./daas_py_api
+
 docker build -f Dockerfile.daas_py_auth --no-cache -t daas_auth .
-docker run --env-file './daas_py_api/daas_py_api/.env.int' -p 8001:8001 daas_auth
+docker run --env-file './daas_py_api/daas_py_api/.env.int' -p 9001:9001 daas_auth

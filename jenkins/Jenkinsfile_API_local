@@ -7,7 +7,7 @@ pipeline {
         )
         string(
             name: 'DOCKER_IMG_PORT',
-            defaultValue: '8002'
+            defaultValue: '9002'
         )
         string(
             name: 'DOCKER_IMG_NAME',
