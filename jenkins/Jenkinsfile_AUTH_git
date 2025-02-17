@@ -61,6 +61,7 @@ pipeline {
         WORKSPACE_DIR_AUTH = "${params.BUILD_DIR}\\daas_py_auth"
         DOCKER_DIR = "${params.BUILD_DIR}\\daas_build\\docker"
         DOCKER_FILE = "Dockerfile.daas_py_auth"
+        DOCKER_SERVICE_NAME = "${params.DOCKER_IMG_NAME.replaceAll('_', '-')}"
         DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
         DOCKER_IMG_PORT = "${params.DOCKER_IMG_PORT}" 
         
@@ -191,7 +192,7 @@ pipeline {
                         Write-Host "Deleted container ${env:DOCKER_IMG_NAME}"
                     } 
 
-                    docker run -d --network=${env:DOCKER_NETWORK_NAME} --name ${env:DOCKER_IMG_NAME} --env-file "${env:DOCKER_ENV_FILE}" -p ${env:DOCKER_IMG_PORT}:${env:DOCKER_IMG_PORT} -e PORT=${env:DOCKER_IMG_PORT} "${env:DOCKER_IMG_NAME}"
+                    docker run -d --network=${env:DOCKER_NETWORK_NAME} --name ${env:DOCKER_SERVICE_NAME} --env-file "${env:DOCKER_ENV_FILE}" -p ${env:DOCKER_IMG_PORT}:${env:DOCKER_IMG_PORT} -e PORT=${env:DOCKER_IMG_PORT} "${env:DOCKER_IMG_NAME}"
                 '''
             }
         }

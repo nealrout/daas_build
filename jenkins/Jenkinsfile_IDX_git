@@ -61,6 +61,7 @@ pipeline {
         WORKSPACE_DIR_IDX = "${params.BUILD_DIR}\\daas_py_idx"
         DOCKER_DIR = "${params.BUILD_DIR}\\daas_build\\docker"
         DOCKER_FILE = "Dockerfile.daas_py_idx"
+        DOCKER_SERVICE_NAME = "${params.DOCKER_IMG_NAME.replaceAll('_', '-')}"
         DOCKER_IMG_NAME = "${params.DOCKER_IMG_NAME}" 
         
         SECRETS_FILE_COPY = "${params.BUILD_DIR}\\daas_py_config\\daas_py_config\\.secrets.toml"
@@ -190,7 +191,7 @@ pipeline {
                         Write-Host "Deleted container ${env:DOCKER_IMG_NAME}"
                     } 
 
-                    docker run -d --network=${env:DOCKER_NETWORK_NAME} --name ${env:DOCKER_IMG_NAME} --env-file "${env:DOCKER_ENV_FILE_COPY}" "${env:DOCKER_IMG_NAME}"
+                    docker run -d --network=${env:DOCKER_NETWORK_NAME} --name ${env:DOCKER_SERVICE_NAME} --env-file "${env:DOCKER_ENV_FILE_COPY}" "${env:DOCKER_IMG_NAME}"
                 '''
             }
         }
