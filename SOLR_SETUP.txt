@@ -20,7 +20,7 @@ settings.json file on server below
     "class":"solr.RuleBasedAuthorizationPlugin",
     "user-role":{
       "admin":["admin"],
-      "daas":["read"],
+      "daas":["read","update"],
       "daas_read":["read"]},
     "permissions":[
       {
