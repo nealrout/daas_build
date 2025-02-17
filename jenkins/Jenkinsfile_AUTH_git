@@ -36,9 +36,7 @@ pipeline {
     }
     environment {
         // We are having issues with Rancher Desktop docker-buildx.exe plugin, so we are using docker-buildx.exe instead of docker
-        // DOCKER_CLI_PLUGINS = "C:\\Program Files\\Rancher Desktop\\resources\\resources\\win32\\docker-cli-plugins"
-        // PATH = "${DOCKER_CLI_PLUGINS};${env.PATH}"
-        
+        DOCKER_NETWORK_NAME = "daas"
         // !!!!!!!!!!!!!!!This local .env and .secrets.toml files are not in github for security reasons.!!!!!!!!!!!!!!!!!!!!!
         DOCKER_ENV_FILE = "${params.DOCKER_ENV_FILE}"
         DOCKER_ENV_FILE_COPY = "${params.BUILD_DIR}\\.env.int"
@@ -145,6 +143,21 @@ pipeline {
                 '''
             }
         }
+        stage('Docker network') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' || params.BUILD_OPTION == 'DockerBuild-DockerRun'}
+            }
+            steps {
+                powershell '''
+                    if (-not (docker network ls --format "{{.Name}}" | Select-String -Pattern "^daas$")) {
+                        docker network create ${env:DOCKER_NETWORK_NAME}
+                        Write-Host "Docker network ${env:DOCKER_NETWORK_NAME} created."
+                    } else {
+                        Write-Host "Docker network ${env:DOCKER_NETWORK_NAME} already exists."
+                    }
+                '''
+            }
+        }
         stage('Build Docker Image') {
             when {
                 expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'DockerBuild' || params.BUILD_OPTION == 'PythonBuild-DockerBuild' || params.BUILD_OPTION == 'DockerBuild-DockerRun'}
@@ -173,7 +186,12 @@ pipeline {
 
                     & "${env:VENV_DIR}\\Scripts\\Activate.ps1"
 
-                    docker run -d --env-file "${env:DOCKER_ENV_FILE_COPY}" -p ${env:DOCKER_IMG_PORT}:${env:DOCKER_IMG_PORT} -e PORT=${env:DOCKER_IMG_PORT} "${env:DOCKER_IMG_NAME}"
+                    if (docker ps -a --filter "name=${env:DOCKER_IMG_NAME}" --format "{{.ID}}") {
+                        docker rm -f ${env:DOCKER_IMG_NAME}
+                        Write-Host "Deleted container ${env:DOCKER_IMG_NAME}"
+                    } 
+
+                    docker run -d --network=${env:DOCKER_NETWORK_NAME} --name ${env:DOCKER_IMG_NAME} --env-file "${env:DOCKER_ENV_FILE}" -p ${env:DOCKER_IMG_PORT}:${env:DOCKER_IMG_PORT} -e PORT=${env:DOCKER_IMG_PORT} "${env:DOCKER_IMG_NAME}"
                 '''
             }
         }
