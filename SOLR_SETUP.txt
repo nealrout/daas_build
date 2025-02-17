@@ -1,13 +1,10 @@
 To create passwords
 
-solr auth <password> admin
-solr auth <password> daas
-solr auth <password> daas_read
+default solr user (I use this only for firs time setup, then the password is changed.)
+hash: "IV0EHq1OnNrj6gvRCwvFwTrZ1+z1oBbnQdiVC3otuq0= Ndd7LKvVBAaZIF0QAVi1ekCfAJXr1GGfLtRUXhgrF8c="
+password: SolrRocks
 
-
-java -classpath server/lib/ext/solr-auth-*.jar org.apache.solr.util.DigestTool hash "myPassword"
-
-
+----------------------------
 settings.json file on server below
 
 {
