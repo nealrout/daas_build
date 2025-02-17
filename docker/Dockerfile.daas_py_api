@@ -12,7 +12,8 @@ RUN apk add --no-cache \
     postgresql-dev \
     gcc \
     musl-dev \
-    python3-dev 
+    python3-dev \
+    procps
 
 # supervisor to manage gunicor web app.
 RUN apk add --no-cache supervisor
