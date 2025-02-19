@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+    parameters {
+        choice(
+            name: 'BUILD_OPTION',
+            choices: ['Full', 'Git']
+        )
+        string(
+            name: 'SOLR_HOST',
+            defaultValue: 'http://localhost:8983'
+        )
+        string(
+            name: 'PROJECT_GITHUB_ROOT',
+            defaultValue: 'https://github.com/nealrout'
+        )
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'develop'
+        )
+        string(
+            name: 'BUILD_DIR',
+            defaultValue: 'D:\\home\\cicd\\solr\\build'
+        )
+    }
+    environment {
+        PROJECT_SOLR = "daas_solr"
+        GIT_BRANCH = "${params.GIT_BRANCH}"
+        GIT_URL_SOLR = "${params.PROJECT_GITHUB_ROOT}/daas_solr.git"
+        WORKSPACE_DIR_SOLR = "${params.BUILD_DIR}\\daas_solr"
+    }
+    stages {
+        stage('Prepare Build Directory') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'Git' }
+            }
+            steps {
+                powershell '''
+                    # Remove old build directory if it exists
+                    if (Test-Path "${env:BUILD_DIR}") { Remove-Item -Recurse -Force "${env:BUILD_DIR}" }
+                    
+                    # Create new build directory
+                    New-Item -ItemType Directory -Path "${env:BUILD_DIR}" | Out-Null
+                '''
+            }
+        }
+        stage('Checkout Code') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'Git'}
+            }
+            steps {
+                script {
+                    echo "Cloning repository..."
+
+                    powershell '''
+                        git clone -b $env:GIT_BRANCH $env:GIT_URL_SOLR $env:WORKSPACE_DIR_SOLR
+                    '''
+                }
+            }
+        }
+        stage('Deploy SOLR') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' }
+            }
+            steps {
+                dir("${env:WORKSPACE_DIR_SOLR}"){
+                    withCredentials([usernamePassword(credentialsId: 'DAAS_SOLR_CREDENTIALS', 
+                                                    usernameVariable: 'USERNAME', 
+                                                    passwordVariable: 'PASSWORD')]) {
+                        powershell '''                    
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=account"
+                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=facility"
+                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=asset"
+                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=service"
+                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+
+                            solr zk upconfig -n account -d "${env:WORKSPACE_DIR_SOLR}"\\account -z localhost:2181
+                            solr zk upconfig -n facility -d "${env:WORKSPACE_DIR_SOLR}"\\facility -z localhost:2181
+                            solr zk upconfig -n asset -d "${env:WORKSPACE_DIR_SOLR}"\\asset -z localhost:2181
+                            solr zk upconfig -n service -d "${env:WORKSPACE_DIR_SOLR}"\\service -z localhost:2181
+
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=account" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=account"
+                            curl.exe --user ""${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=facility" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=facility"
+                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=asset" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=asset"
+                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=service" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=service"
+                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                        '''
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo "Build completed successfully!"
+        }
+        failure {
+            echo "Build failed!"
+        }
+    }
+}

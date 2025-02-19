@@ -1,0 +1,89 @@
+pipeline {
+    agent any
+    parameters {
+        choice(
+            name: 'BUILD_OPTION',
+            choices: ['Full', 'Git']
+        )
+        choice(
+            name: 'LIQUIBASE_CONTEXT',
+            choices: ['init', 'update']
+        )
+        string(
+            name: 'DB_HOST',
+            defaultValue: 'jdbc:postgresql://localhost:5432/us_int_daas'
+        )
+        string(
+            name: 'PROJECT_GITHUB_ROOT',
+            defaultValue: 'https://github.com/nealrout'
+        )
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'develop'
+        )
+        string(
+            name: 'BUILD_DIR',
+            defaultValue: 'D:\\home\\cicd\\db\\build'
+        )
+    }
+    environment {
+        PROJECT_DB = "daas_db"
+        GIT_BRANCH = "${params.GIT_BRANCH}"
+        GIT_URL_DB = "${params.PROJECT_GITHUB_ROOT}/daas_db.git"
+        WORKSPACE_DIR_DB = "${params.BUILD_DIR}\\daas_db"
+    }
+    stages {
+        stage('Prepare Build Directory') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'Git' }
+            }
+            steps {
+                powershell '''
+                    # Remove old build directory if it exists
+                    if (Test-Path "${env:BUILD_DIR}") { Remove-Item -Recurse -Force "${env:BUILD_DIR}" }
+                    
+                    # Create new build directory
+                    New-Item -ItemType Directory -Path "${env:BUILD_DIR}" | Out-Null
+                '''
+            }
+        }
+        stage('Checkout Code') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' || params.BUILD_OPTION == 'Git'}
+            }
+            steps {
+                script {
+                    echo "Cloning repository..."
+
+                    powershell '''
+                        git clone -b $env:GIT_BRANCH $env:GIT_URL_DB $env:WORKSPACE_DIR_DB
+                    '''
+                }
+            }
+        }
+        stage('Deploy Database') {
+            when {
+                expression { params.BUILD_OPTION == 'Full' }
+            }
+            steps {
+                dir("${env:WORKSPACE_DIR_DB}"){
+                    withCredentials([usernamePassword(credentialsId: 'DAAS_DB_CREDENTIALS', 
+                                                    usernameVariable: 'USERNAME', 
+                                                    passwordVariable: 'PASSWORD')]) {
+                        powershell '''                    
+                            liquibase update --url="${env:DB_HOST}" --contexts="${env:LIQUIBASE_CONTEXT}" --username="${env:USERNAME}" --password="${env:PASSWORD}"
+                        '''
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo "Build completed successfully!"
+        }
+        failure {
+            echo "Build failed!"
+        }
+    }
+}
