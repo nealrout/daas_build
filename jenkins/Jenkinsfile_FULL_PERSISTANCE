@@ -1,0 +1,27 @@
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Trigger Child Jobs') {
+            steps {
+                script {
+
+                    def dbJobResult = build job: 'daas_db_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'Full'),
+                        string(name: 'LIQUIBASE_CONTEXT', value: 'init')
+                    ], wait: true  
+
+                    echo "db job completed with status: ${dbJobResult.result}"
+
+                    def solrJobResult = build job: 'daas_solr_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'Full')
+                    ], wait: true 
+
+                    echo "solr job completed with status: ${solrJobResult.result}"
+
+                }
+            }
+        }
+    }
+}

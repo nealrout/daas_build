@@ -67,28 +67,38 @@ pipeline {
                                                     usernameVariable: 'USERNAME', 
                                                     passwordVariable: 'PASSWORD')]) {
                         powershell '''                    
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=account"
-                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=facility"
-                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=asset"
-                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=DELETE" + "`&name=service"
-                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            $CREDENTIALS = "$env:USERNAME`:$env:PASSWORD"
 
-                            solr zk upconfig -n account -d "${env:WORKSPACE_DIR_SOLR}"\\account -z localhost:2181
-                            solr zk upconfig -n facility -d "${env:WORKSPACE_DIR_SOLR}"\\facility -z localhost:2181
-                            solr zk upconfig -n asset -d "${env:WORKSPACE_DIR_SOLR}"\\asset -z localhost:2181
-                            solr zk upconfig -n service -d "${env:WORKSPACE_DIR_SOLR}"\\service -z localhost:2181
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=DELETE`&name=account"
+                            curl.exe --user $CREDENTIALS "$URL"
 
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=account" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=account"
-                            curl.exe --user ""${env:USERNAME}":"${env:PASSWORD}" "${URL}"
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=facility" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=facility"
-                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=asset" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=asset"
-                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
-                            ${URL} = "$env:SOLR_HOST/solr/admin/collections?action=CREATE" + "`&name=service" + "`&numShards=1" + "`&replicationFactor=1" + "`&collection.configName=service"
-                            curl.exe --user "${env:USERNAME}":"${env:PASSWORD}" "${URL}"
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=DELETE`&name=facility"
+                            curl.exe --user $CREDENTIALS "$URL"
+
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=DELETE`&name=asset"
+                            curl.exe --user $CREDENTIALS "$URL"
+
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=DELETE`&name=service"
+                            curl.exe --user $CREDENTIALS "$URL"
+
+                            solr zk upconfig -n account -d "$env:WORKSPACE_DIR_SOLR\\account" -z localhost:2181
+                            solr zk upconfig -n facility -d "$env:WORKSPACE_DIR_SOLR\\facility" -z localhost:2181
+                            solr zk upconfig -n asset -d "$env:WORKSPACE_DIR_SOLR\\asset" -z localhost:2181
+                            solr zk upconfig -n service -d "$env:WORKSPACE_DIR_SOLR\\service" -z localhost:2181
+
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=CREATE`&name=account`&numShards=1`&replicationFactor=1`&collection.configName=account"
+                            curl.exe --user $CREDENTIALS "$URL"
+
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=CREATE`&name=facility`&numShards=1`&replicationFactor=1`&collection.configName=facility"
+                            curl.exe --user $CREDENTIALS "$URL"
+
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=CREATE`&name=asset`&numShards=1`&replicationFactor=1`&collection.configName=asset"
+                            curl.exe --user $CREDENTIALS "$URL"
+
+                            $URL = "$env:SOLR_HOST/solr/admin/collections?action=CREATE`&name=service`&numShards=1`&replicationFactor=1`&collection.configName=service"
+                            curl.exe --user $CREDENTIALS "$URL"
+
+
                         '''
                     }
                 }
