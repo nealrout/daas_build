@@ -99,6 +99,15 @@ pipeline {
                     ], wait: true 
 
                     echo "user job completed with status: ${userJobResult.result}"
+
+                    def userFacilityJobResult = build job: 'daas_py_api_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOCKER_IMG_PORT', value: '9006'),
+                        string(name: 'DOMAIN', value: 'userfacility'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_api_userfacility')
+                    ], wait: true 
+
+                    echo "user job completed with status: ${userJobResult.result}"
                 }
             }
         }
