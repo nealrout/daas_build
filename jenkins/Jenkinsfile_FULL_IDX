@@ -10,7 +10,8 @@ pipeline {
                         "daas_idx_account",
                         "daas_idx_facility",
                         "daas_idx_asset",
-                        "daas_idx_service"
+                        "daas_idx_service",
+                        "daas_idx_user"
                     )
 
                     foreach ($image in $images) {
@@ -78,6 +79,14 @@ pipeline {
                     ], wait: true 
 
                     echo "service job completed with status: ${serviceJobResult.result}"
+
+                    def userJobResult = build job: 'daas_py_idx_git', parameters: [
+                        string(name: 'BUILD_OPTION', value: 'DockerBuild-DockerRun'),
+                        string(name: 'DOMAIN', value: 'user'),
+                        string(name: 'DOCKER_IMG_NAME', value: 'daas_idx_user')
+                    ], wait: true 
+
+                    echo "user job completed with status: ${userJobResult.result}"
                 }
             }
         }

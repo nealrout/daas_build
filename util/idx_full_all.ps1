@@ -1,5 +1,5 @@
 # List of Docker image names
-$dockerImages = @("daas_idx_account", "daas_idx_facility", "daas_idx_asset", "daas_idx_service")
+$dockerImages = @("daas_idx_account", "daas_idx_facility", "daas_idx_asset", "daas_idx_service", "daas_idx_user")
 
 # Python script path inside the container
 $pythonScriptPath = "/usr/local/lib/python3.12/site-packages/daas_py_idx/main.py"
