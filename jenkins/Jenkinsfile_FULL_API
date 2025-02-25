@@ -12,7 +12,8 @@ pipeline {
                         "daas_api_facility",
                         "daas_api_asset",
                         "daas_api_service",
-                        "daas_api_user"
+                        "daas_api_user",
+                        "daas_api_userfacility"
                     )
 
                     foreach ($image in $images) {
